@@ -1,38 +1,8 @@
-import cv2
-import RPi.GPIO as GPIO
-import numpy as np
-import cv2
-from math import floor
-
-#pin list for the vaults to controll
-chan_list = [7,8,9,10,11,23,24,25]
-
-#gpio settings
-GPIO.setmode(GPIO.BCM)
-GPIO.setup(chan_list, GPIO.OUT)
-GPIO.output(chan_list, 0)
+from tracking_util import *
 
 # HSV color thresholds for GREY
-THRESHOLD_LOW = (0, 0, 0);
-THRESHOLD_HIGH = (60, 60, 60);
-
-# Resolution
-CAMERA_WIDTH = 640
-CAMERA_HEIGHT = 480
-
-# Minimum required radius of enclosing circle of contour
-MIN_RADIUS = 2
-
-# trigger pin every time a object is tracked
-def triggerPin(x,y):
-        row = int(floor(x/(CAMERA_WIDTH/4)))
-        col = int(floor(y/(CAMERA_HEIGHT / 2)))
-        index = row + (col * 4)
-        print("x:", x, "y:", y, "triggering index: " , index)
-        for x in chan_list:
-                GPIO.output(x, GPIO.LOW)
-        GPIO.output(chan_list[index], GPIO.HIGH)
-        return index
+THRESHOLD_LOW = (0, 0, 0)
+THRESHOLD_HIGH = (60, 60, 60)
 
 # test output writer
 fourcc = cv2.VideoWriter_fourcc(*'XVID')
@@ -72,25 +42,22 @@ while True:
         cv2.CHAIN_APPROX_SIMPLE)[-2]
 
     # Find the largest contour and use it to compute the min enclosing circle
-    center = None
     radius = 0
-    if len(contours) > 0:
-        c = max(contours, key=cv2.contourArea)
-        ((x, y), radius) = cv2.minEnclosingCircle(c)
-        M = cv2.moments(c)
-        if M["m00"] > 0:
-            center = (int(M["m10"] / M["m00"]), int(M["m01"] / M["m00"]))
-            if radius < MIN_RADIUS:
-                center = None
+    center = None
 
-    # Print out the location and size (radius) of the largest detected contour
+    if contours is not None:
+        result = findLargestContour(contours)
+        if result is not None:
+            x, y, center = result
+
     if center != None:
         x, y = center
-        print str(center) + " " + str(radius)
         text = str(triggerPin(x,y))
+        # for debugging: put the triggered pin index on the video
         cv2.putText(img,text,(30,30), font, 1,(0,0,100),2)
 
     # Draw a green circle around the largest enclosed contour
     if center != None:
         cv2.circle(img, center, int(round(radius)), (0, 255, 0))
     out.write(img)
+
