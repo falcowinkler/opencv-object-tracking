@@ -36,9 +36,7 @@ def findLargestContour(contours):
 
 # trigger pin every time a object is tracked
 def triggerPin(x,y):
-        row = int(floor(x/(CAMERA_WIDTH/4)))
-        col = int(floor(y/(CAMERA_HEIGHT / 2)))
-        index = row + (col * 4)
+        index = find_index(x,y)
         print("x:", x, "y:", y, "triggering index: " , index)
 
         if index not in active_pins:
@@ -51,3 +49,9 @@ def triggerPin(x,y):
                 GPIO.output(chan_list[i], GPIO.LOW)
 
         return index
+
+
+def find_index(x, y):
+    row = int(floor(x / (CAMERA_WIDTH / 4)))
+    col = int(floor(y / (CAMERA_HEIGHT / 2)))
+    return row + (col * 4)
